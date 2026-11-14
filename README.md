@@ -1,0 +1,1 @@
+# s08-minikube-configuracion-segura
