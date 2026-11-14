@@ -1,0 +1,8 @@
+# Namespace que aísla todos los recursos del laboratorio S08 | AP6.
+# Eliminarlo (kubectl delete namespace practica-s08) borra todo el laboratorio.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: practica-s08
+  labels:
+    app.kubernetes.io/part-of: agro-productos

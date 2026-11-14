@@ -1,0 +1,17 @@
+{
+  "name": "agro-productos-api",
+  "version": "1.0.0",
+  "description": "Sistema de Gestión de Productos Agrícolas - API REST (Node.js + Express + MongoDB) para la práctica S08 AP6",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "mongoose": "^8.9.5"
+  }
+}

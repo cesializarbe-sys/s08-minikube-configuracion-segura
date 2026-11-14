@@ -1,0 +1,102 @@
+# Stack de MongoDB: PVC + Deployment + Service ClusterIP.
+# MongoDB NO se expone al exterior: solo los Pods del clúster llegan a él
+# mediante el DNS interno "mongo-service.practica-s08.svc.cluster.local".
+---
+# Almacenamiento persistente para que los datos sobrevivan a reinicios del Pod.
+# Minikube lo atiende con su StorageClass "standard" (hostPath provisioner).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+  namespace: practica-s08
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-deployment
+  namespace: practica-s08
+  labels:
+    app: mongo
+spec:
+  replicas: 1                 # BD de una sola instancia (el PVC es ReadWriteOnce)
+  strategy:
+    type: Recreate            # Evita dos Pods compitiendo por el mismo volumen al actualizar
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: mongo
+          image: mongo:7.0    # Imagen oficial, compatible con mongoose 8 del backend
+          ports:
+            - containerPort: 27017
+          env:
+            # El usuario administrador se crea la PRIMERA vez que se inicializa el volumen,
+            # con las mismas credenciales del Secret que usa el backend.
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: DB_USER
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: DB_PASS
+            # Nombre de la base de datos inicial, tomado del ConfigMap.
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: app-configmap
+                  key: DB_NAME
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+          readinessProbe:      # Recibe tráfico solo cuando MongoDB acepta conexiones
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: mongo-data
+          persistentVolumeClaim:
+            claimName: mongo-pvc
+---
+# Service ClusterIP: IP virtual estable SOLO accesible dentro del clúster.
+# Su nombre ("mongo-service") es el valor de DB_HOST en el ConfigMap.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service
+  namespace: practica-s08
+  labels:
+    app: mongo
+spec:
+  type: ClusterIP
+  selector:
+    app: mongo               # Debe coincidir con las labels del Pod del Deployment
+  ports:
+    - port: 27017
+      targetPort: 27017

@@ -1,0 +1,17 @@
+# ConfigMap: configuración NO sensible de la aplicación.
+# Se inyecta en el backend completo con "envFrom -> configMapRef".
+# Todo lo que aquí se escribe es texto plano y visible: nunca poner credenciales.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-configmap
+  namespace: practica-s08
+  labels:
+    app.kubernetes.io/part-of: agro-productos
+data:
+  # Nombre del Service ClusterIP de MongoDB (se resuelve por DNS interno del clúster).
+  DB_HOST: "mongo-service"
+  # Base de datos donde la API guarda los productos agrícolas.
+  DB_NAME: "agro_productos"
+  # Puerto en el que escucha el backend (debe coincidir con containerPort y targetPort).
+  APP_PORT: "3000"
